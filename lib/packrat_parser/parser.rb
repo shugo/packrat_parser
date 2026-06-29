@@ -85,12 +85,18 @@ class PackratParser
   #
   # The combinator graph is rebuilt on every (memo-missed) entry rather than
   # cached, and that is deliberate. The `for ... then` comprehension's loop
-  # variables leak into the enclosing rule-method scope instead of being
-  # block-local, so a single built closure shares those slots. If the same
+  # variables currently leak into the enclosing rule-method scope instead of
+  # being block-local, so a single built closure shares those slots. If the same
   # closure were reused for a recursive activation (e.g. additive calling
   # additive), the inner activation would clobber the outer's leaked variables.
   # Building fresh gives each activation its own scope. The rebuild is bounded:
   # result memoization means a build happens at most once per (rule, pos).
+  #
+  # NOTE: this rebuild is a workaround for the loop-variable leak in the fork's
+  # comprehension (parse.y: new_for_comp_gen leaves the loop var in the
+  # surrounding scope, like the legacy `for`). If the comprehension is changed to
+  # make loop variables block-local, this clobbering goes away and `built` can be
+  # cached once per (owner, name) again -- e.g. `@owner.__built[@name] ||= ...`.
   class Rule < Parser
     def initialize(owner, name, body)
       @owner = owner
