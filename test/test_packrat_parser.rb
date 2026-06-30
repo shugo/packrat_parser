@@ -100,6 +100,55 @@ assert_equal "b", ChoiceParser.parse("b"), "choice second alternative"
 assert_raise(PackratParser::ParseError, "choice both fail") { ChoiceParser.parse("c") }
 
 # ---------------------------------------------------------------------------
+# Sequencing operators: `<<` keeps the left result, `>>` keeps the right
+# (Scala's `<~` / `~>`).
+# ---------------------------------------------------------------------------
+class KeepLeftParser < PackratParser
+  start_symbol :num
+  def num
+    term(/\d+/).map { |s| s.to_i } << term(";")
+  end
+end
+assert_equal 42, KeepLeftParser.parse("42;"), "<< keeps left result"
+assert_raise(PackratParser::ParseError, "<< requires right to match") { KeepLeftParser.parse("42") }
+
+class KeepRightParser < PackratParser
+  start_symbol :num
+  def num
+    term("#") >> term(/\d+/).map { |s| s.to_i }
+  end
+end
+assert_equal 7, KeepRightParser.parse("#7"), ">> keeps right result"
+
+# Combined, mirroring `( expr )`: skip "(", parse, then skip ")".
+class WrappedParser < PackratParser
+  start_symbol :wrapped
+  def wrapped
+    term("(") >> term(/\d+/).map { |s| s.to_i } << term(")")
+  end
+end
+assert_equal 99, WrappedParser.parse("(99)"), "combined >> ... << unwraps"
+
+# `+` keeps both results as a pair (Scala's `~`).
+class PairParser < PackratParser
+  start_symbol :pair
+  def pair
+    term(/\d/).map { |s| s.to_i } + term(/\d/).map { |s| s.to_i }
+  end
+end
+assert_equal [3, 7], PairParser.parse("37"), "+ keeps both results"
+
+# `+` is left-associative and nests, like Scala's `~`.
+class TripleParser < PackratParser
+  start_symbol :triple
+  def triple
+    d = term(/\d/).map { |s| s.to_i }
+    (d + d + d).map { |(a, b), c| [a, b, c] }
+  end
+end
+assert_equal [1, 2, 3], TripleParser.parse("123"), "+ nests left-associatively"
+
+# ---------------------------------------------------------------------------
 # The calculator: recursion, precedence, parens, memoization.
 # ---------------------------------------------------------------------------
 require_relative "../examples/simple_calc"

@@ -70,6 +70,33 @@ class PackratParser
         end
       end
     end
+
+    # Sequence, keeping the *left* result (Scala's `<~`). Run this parser, then
+    # +other+, and on success return this parser's value, discarding +other+'s.
+    #
+    #   number << term(";")   # parse a number followed by ";", yield the number
+    def <<(other)
+      flat_map { |x| other.map { |_| x } }
+    end
+
+    # Sequence, keeping the *right* result (Scala's `~>`). Run this parser, then
+    # +other+, and on success return +other+'s value, discarding this one's.
+    #
+    #   term("(") >> additive   # skip "(", yield whatever additive produces
+    def >>(other)
+      flat_map { |_| other }
+    end
+
+    # Sequence, keeping *both* results (Scala's `~`). Run this parser, then
+    # +other+, and on success return the pair +[left, right]+. Like Scala's `~`
+    # this is left-associative and nests, so `p + q + r` yields `[[a, b], c]`;
+    # Ruby's block-parameter destructuring takes them apart the way Scala's
+    # `case a ~ b ~ c` does:
+    #
+    #   (p + q + r).map { |(a, b), c| ... }
+    def +(other)
+      flat_map { |x| other.map { |y| [x, y] } }
+    end
   end
 
   # A lazy, memoizing reference to a named grammar rule.
