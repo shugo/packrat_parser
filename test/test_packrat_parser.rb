@@ -231,6 +231,31 @@ assert_raise(PackratParser::ParseError, "rule.parse still requires full consumpt
 end
 
 # ---------------------------------------------------------------------------
+# Private methods are ordinary helpers, not grammar rules.
+# ---------------------------------------------------------------------------
+class HelperParser < PackratParser
+  start_symbol :doubled
+  def doubled
+    for n in number then twice(n) end
+  end
+  def number
+    for s in term(/\d+/) then s.to_i end
+  end
+
+  private
+
+  def twice(n)
+    n * 2
+  end
+end
+assert_equal 42, HelperParser.parse("21"), "private method usable as a helper"
+assert_equal false, HelperParser.new.respond_to?(:twice), "private helper stays private"
+# A plain helper returns its value directly, not a Rule.
+assert_equal 10, HelperParser.new.send(:twice, 5), "private helper is not rule-ified"
+# Public sibling rules still behave as rules.
+assert_equal 7, HelperParser.new.number.parse("7"), "public method is still a rule"
+
+# ---------------------------------------------------------------------------
 # Multibyte (UTF-8) input: positions are tracked by byte offset, so matching
 # stays correct across multibyte characters (and stays O(match length)).
 # ---------------------------------------------------------------------------

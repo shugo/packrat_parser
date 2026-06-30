@@ -53,10 +53,17 @@ class PackratParser
   # Rule. Guards against rewriting the base class's own infrastructure and
   # against re-entering while we install the replacement (define_method itself
   # fires method_added).
+  #
+  # Private methods are left alone, so they can be used as ordinary helpers
+  # rather than grammar rules. Note this only sees the visibility in effect when
+  # the method is defined, so it recognises the `private` section form but not
+  # `private def foo ... end` (which is still public at this point and only made
+  # private afterwards).
   def self.method_added(name)
     return if self == PackratParser
     return if name == :initialize
     return if @__defining_rule
+    return if private_method_defined?(name)
 
     @__defining_rule = true
     @start_symbol ||= name

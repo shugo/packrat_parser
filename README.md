@@ -49,9 +49,14 @@ The default Prism parser rejects `for ... then`. The library itself
 
 ## API
 
-Subclass `PackratParser`. **Every method you define in the subclass is a grammar
-rule** and must return a parser; rule methods are automatically made lazy and
-memoized so they can reference one another (and themselves) recursively.
+Subclass `PackratParser`. **Every public method you define in the subclass is a
+grammar rule** and must return a parser; rule methods are automatically made lazy
+and memoized so they can reference one another (and themselves) recursively.
+
+**Private methods are left as ordinary helpers** (not rules), so you can factor
+out plain Ruby logic. Use the `private` section form (`private` on its own line,
+then the defs); `private def foo` is not detected, because the method is still
+public when it is defined.
 
 ### Building blocks (available inside rule methods)
 
