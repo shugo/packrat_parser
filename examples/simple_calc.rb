@@ -14,19 +14,19 @@ class SimpleCalcParser < PackratParser
   start_symbol :additive
 
   def additive
-    (for x in multitive, _ in term("+"), y in additive then x + y end) |
-      (for x in multitive, _ in term("-"), y in additive then x - y end) |
+    for x in multitive << term("+"), y in additive then x + y end |
+      for x in multitive << term("-"), y in additive then x - y end |
       multitive
   end
 
   def multitive
-    (for x in primary, _ in term("*"), y in multitive then x * y end) |
-      (for x in primary, _ in term("/"), y in multitive then x / y end) |
+    for x in primary << term("*"), y in multitive then x * y end |
+      for x in primary << term("/"), y in multitive then x / y end |
       primary
   end
 
   def primary
-    (for _l in term("("), x in additive, _r in term(")") then x end) |
+    for x in term("(") >> additive << term(")") then x end |
       number
   end
 
