@@ -136,14 +136,16 @@ class PackratParser
     Parser.new { |_input, pos| Success.new(value, pos) }
   end
 
-  # Parse +input+ starting from the configured start symbol. Returns the parsed
-  # value on success; raises ParseError on failure or on leftover input.
+  # Parse +input+, starting from rule +start+ (defaults to the configured start
+  # symbol). Returns the parsed value on success; raises ParseError on failure or
+  # on leftover input. Pass +start+ to parse from any rule, e.g.
+  # +parser.parse("123", :number)+ or, equivalently, +parser.number.parse("123")+.
   #
   # Positions are byte offsets throughout, including the +pos+ reported on a
   # ParseError (see +term+ for why matching is byte-oriented).
-  def parse(input)
+  def parse(input, start = nil)
     @__memo = {}
-    name = self.class.start_symbol
+    name = start || self.class.start_symbol
     raise ParseError.new("no start symbol defined", 0) unless name
 
     result = send(name).call(input, 0)

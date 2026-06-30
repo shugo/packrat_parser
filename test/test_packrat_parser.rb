@@ -221,6 +221,16 @@ end
 assert_equal 7, InheritedWsParser.parse("1 + 2 * 3"), "whitespace setting is inherited"
 
 # ---------------------------------------------------------------------------
+# Parsing from a specific rule (Scala's parse(rule, input)).
+# ---------------------------------------------------------------------------
+assert_equal 123, SimpleCalcParser.new.number.parse("123"), "rule.parse starts from that rule"
+assert_equal 6, SimpleCalcParser.new.multitive.parse("2*3"), "rule.parse on a recursive rule"
+assert_equal 6, SimpleCalcParser.new.parse("2*3", :multitive), "parse accepts an explicit start rule"
+assert_raise(PackratParser::ParseError, "rule.parse still requires full consumption") do
+  SimpleCalcParser.new.number.parse("12x")
+end
+
+# ---------------------------------------------------------------------------
 # Multibyte (UTF-8) input: positions are tracked by byte offset, so matching
 # stays correct across multibyte characters (and stays O(match length)).
 # ---------------------------------------------------------------------------

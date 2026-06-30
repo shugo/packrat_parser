@@ -114,6 +114,10 @@ The setting is inherited by subclasses, so a base parser can enable it once.
   If omitted, the first defined method is used as the start symbol.
 - `Klass.parse(input)` / `Klass.new.parse(input)` — parse, returning the value.
   Raises `PackratParser::ParseError` on failure or leftover input.
+- Parse from any rule, not just the start symbol:
+  `Klass.new.number.parse("123")` (call `parse` on the rule) or
+  `Klass.new.parse("123", :number)` (pass the start rule). Both apply the same
+  full-consumption check and whitespace handling.
 
 ## Notes / limitations
 

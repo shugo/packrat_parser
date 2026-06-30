@@ -132,5 +132,12 @@ class PackratParser
       combinator = (@owner.__built[@name] ||= @body.bind(@owner).call)
       memo[key] = combinator.call(input, pos)
     end
+
+    # Parse +input+ starting from this rule, e.g. +parser.number.parse("123")+.
+    # Delegates to the owner so memo reset, whitespace handling, and the
+    # full-consumption check are applied exactly as for the start symbol.
+    def parse(input)
+      @owner.parse(input, @name)
+    end
   end
 end
