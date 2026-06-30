@@ -123,11 +123,10 @@ The setting is inherited by subclasses, so a base parser can enable it once.
 - **No implicit whitespace by default.** `term` matches exactly. Enable implicit
   whitespace skipping with `skip_whitespace` (see above) when your grammar needs
   it.
-- **Byte-oriented positions.** Internally the parser tracks byte offsets and
-  matches with `byteslice` / `byteindex`, so it stays efficient on UTF-8 input
-  (indexing a multibyte string by character is O(n)). The `pos` on a raised
-  `ParseError` is converted back to a character offset, so error locations read
-  naturally.
+- **Byte-oriented positions.** The parser tracks byte offsets and matches with
+  `byteslice` / `byteindex`, so it stays efficient on UTF-8 input (indexing a
+  multibyte string by character is O(n)). Positions are byte offsets throughout,
+  including the `pos` reported on a raised `ParseError`.
 
 ## Running the tests
 

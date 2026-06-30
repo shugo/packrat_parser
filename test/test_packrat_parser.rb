@@ -256,14 +256,14 @@ class WsKanjiParser < PackratParser
 end
 assert_equal ["日本", "語"], WsKanjiParser.parse(" 日本 　語 "), "multibyte tokens and full-width-space whitespace"
 
-# Error positions are reported as character offsets, not byte offsets, even when
-# preceded by multibyte characters.
+# Error positions are reported as byte offsets.
 begin
   KanjiNumParser.parse("三二一123x")
   assert(false, "expected ParseError")
 rescue PackratParser::ParseError => e
-  # "三二一123" is 6 characters; the stray "x" is at character offset 6.
-  assert_equal 6, e.pos, "error pos is a character offset, not a byte offset"
+  # "三二一" is 9 bytes (3 kanji x 3 bytes) + "123" is 3 bytes, so the stray
+  # "x" is at byte offset 12.
+  assert_equal 12, e.pos, "error pos is a byte offset"
 end
 
 report!

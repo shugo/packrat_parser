@@ -132,9 +132,8 @@ class PackratParser
   # Parse +input+ starting from the configured start symbol. Returns the parsed
   # value on success; raises ParseError on failure or on leftover input.
   #
-  # Parsing tracks byte offsets internally (see +term+), but the position
-  # reported on a ParseError is a character offset, so error messages count the
-  # way a human reads the source.
+  # Positions are byte offsets throughout, including the +pos+ reported on a
+  # ParseError (see +term+ for why matching is byte-oriented).
   def parse(input)
     @__memo = {}
     name = self.class.start_symbol
@@ -142,7 +141,7 @@ class PackratParser
 
     result = send(name).call(input, 0)
     unless result.success?
-      raise ParseError.new(result.message, __char_offset(input, result.pos))
+      raise ParseError.new(result.message, result.pos)
     end
     # The last terminal skips only *leading* whitespace, so trailing whitespace
     # after the final token is left for parse to consume before requiring that
@@ -150,14 +149,8 @@ class PackratParser
     ws = self.class.whitespace
     end_pos = __skip_ws(ws && /\G(?:#{ws})/, input, result.pos)
     if end_pos < input.bytesize
-      raise ParseError.new("unexpected trailing input", __char_offset(input, end_pos))
+      raise ParseError.new("unexpected trailing input", end_pos)
     end
     result.value
-  end
-
-  # Convert an internal byte offset to a character offset for user-facing error
-  # reporting. O(byte_pos), but only ever runs on the error path.
-  def __char_offset(input, byte_pos)
-    input.byteslice(0, byte_pos).length
   end
 end
