@@ -110,20 +110,14 @@ class PackratParser
   # Memoizing the *result* per (rule, pos) gives the packrat property: each rule
   # is evaluated at most once per input position, so parsing stays linear.
   #
-  # The combinator graph is rebuilt on every (memo-missed) entry rather than
-  # cached, and that is deliberate. The `for ... then` comprehension's loop
-  # variables currently leak into the enclosing rule-method scope instead of
-  # being block-local, so a single built closure shares those slots. If the same
-  # closure were reused for a recursive activation (e.g. additive calling
-  # additive), the inner activation would clobber the outer's leaked variables.
-  # Building fresh gives each activation its own scope. The rebuild is bounded:
-  # result memoization means a build happens at most once per (rule, pos).
-  #
-  # NOTE: this rebuild is a workaround for the loop-variable leak in the fork's
-  # comprehension (parse.y: new_for_comp_gen leaves the loop var in the
-  # surrounding scope, like the legacy `for`). If the comprehension is changed to
-  # make loop variables block-local, this clobbering goes away and `built` can be
-  # cached once per (owner, name) again -- e.g. `@owner.__built[@name] ||= ...`.
+  # The combinator graph is built once per rule and cached on the owner. This
+  # relies on the comprehension's loop variables being block-local: each closure
+  # built from the rule body owns its loop-variable bindings, so reusing one
+  # cached closure across recursive activations (e.g. additive calling additive)
+  # is safe. (An earlier fork leaked the loop variables into the rule-method
+  # scope, which forced a rebuild per entry so activations would not clobber each
+  # other's bindings; that workaround is no longer needed now that the
+  # comprehension scopes them.)
   class Rule < Parser
     def initialize(owner, name, body)
       @owner = owner
@@ -135,7 +129,7 @@ class PackratParser
       memo = @owner.__memo
       key = [@name, pos]
       return memo[key] if memo.key?(key)
-      combinator = @body.bind(@owner).call
+      combinator = (@owner.__built[@name] ||= @body.bind(@owner).call)
       memo[key] = combinator.call(input, pos)
     end
   end

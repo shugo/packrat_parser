@@ -75,6 +75,13 @@ class PackratParser
     @__memo ||= {}
   end
 
+  # Cache of built combinators, keyed by rule name. The combinator graph for a
+  # rule is stable, so it is built once and reused (loop variables are
+  # block-local, so reusing a closure across recursive activations is safe).
+  def __built
+    @__built ||= {}
+  end
+
   # A terminal parser. A String matches that exact literal at the current
   # position; a Regexp is matched anchored at the current position. The matched
   # substring is the parser's value.
