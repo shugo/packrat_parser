@@ -140,7 +140,12 @@ The setting is inherited by subclasses, so a base parser can enable it once.
 ## Running the tests
 
 ```sh
+rake            # or: rake test
+# or directly:
 bin/test
 # or:
-ruby --parser=parse.y -Ilib -Itest test/test_packrat_parser.rb
+ruby --parser=parse.y -Ilib test/test_packrat_parser.rb
 ```
+
+The `rake test` task runs the suite under `--parser=parse.y` for you (the test
+grammars need the fork's legacy parser).
