@@ -91,6 +91,26 @@ for x in p, y in q when y > 0 then x + y end
 # == p.flat_map { |x| q.filter { |y| y > 0 }.map { |y| x + y } }
 ```
 
+### Whitespace skipping (optional)
+
+By default `term` matches exactly. To skip whitespace implicitly — like Scala's
+`RegexParsers` — declare `skip_whitespace` at the class level. Each `term` then
+consumes leading whitespace before matching, and `parse` consumes trailing
+whitespace before requiring full input consumption:
+
+```ruby
+class CalcParser < PackratParser
+  skip_whitespace            # default pattern: /\s+/
+  # skip_whitespace(/[ \t]+/)  # or a custom pattern (e.g. spaces/tabs only)
+  start_symbol :additive
+  # ... rules using term(...) ...
+end
+
+CalcParser.parse("  1 + 2 * 3  ")  # => 7
+```
+
+The setting is inherited by subclasses, so a base parser can enable it once.
+
 ### Entry point
 
 - `start_symbol :name` (class level) — choose the rule to start from.
@@ -102,8 +122,9 @@ for x in p, y in q when y > 0 then x + y end
 - **Classic packrat: no left recursion.** Write rules right-recursively. A
   consequence is that `-` and `/` in the example calculator associate to the
   right (`12/4/3` parses as `12/(4/3)` == `12`).
-- **No implicit whitespace.** `term` matches exactly; handle whitespace yourself
-  if your grammar needs it.
+- **No implicit whitespace by default.** `term` matches exactly. Enable implicit
+  whitespace skipping with `skip_whitespace` (see above) when your grammar needs
+  it.
 
 ## Running the tests
 

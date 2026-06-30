@@ -24,6 +24,26 @@ class PackratParser
     end
   end
 
+  # Enable implicit whitespace skipping (Scala's RegexParsers mode). When set,
+  # every +term+ skips leading whitespace matching +pattern+ before attempting
+  # its match, and +parse+ also consumes trailing whitespace before requiring
+  # full input consumption. Off by default (terminals match exactly).
+  #
+  #   class CalcParser < PackratParser
+  #     skip_whitespace            # default /\s+/
+  #     # skip_whitespace(/[ \t]+/)  # or a custom pattern
+  #   end
+  def self.skip_whitespace(pattern = /\s+/)
+    @__whitespace = pattern
+  end
+
+  # The configured whitespace pattern, or nil when skipping is disabled.
+  # Inherited by subclasses so a base parser can turn the mode on once.
+  def self.whitespace
+    return @__whitespace if defined?(@__whitespace)
+    superclass.respond_to?(:whitespace) ? superclass.whitespace : nil
+  end
+
   # Convenience: parse +input+ with a fresh instance.
   def self.parse(input)
     new.parse(input)
@@ -57,10 +77,16 @@ class PackratParser
   # A terminal parser. A String matches that exact literal at the current
   # position; a Regexp is matched anchored at the current position. The matched
   # substring is the parser's value.
+  #
+  # When the class enables +skip_whitespace+, leading whitespace is consumed
+  # before the match is attempted, mirroring Scala's RegexParsers.
   def term(pattern)
+    ws = self.class.whitespace
+    ws = /\G(?:#{ws})/ if ws
     case pattern
     when String
       Parser.new do |input, pos|
+        pos = __skip_ws(ws, input, pos)
         if input[pos, pattern.length] == pattern
           Success.new(pattern, pos + pattern.length)
         else
@@ -70,6 +96,7 @@ class PackratParser
     when Regexp
       anchored = /\G(?:#{pattern})/
       Parser.new do |input, pos|
+        pos = __skip_ws(ws, input, pos)
         if (m = anchored.match(input, pos))
           Success.new(m[0], pos + m[0].length)
         else
@@ -79,6 +106,13 @@ class PackratParser
     else
       raise ArgumentError, "term expects a String or Regexp, got #{pattern.class}"
     end
+  end
+
+  # Advance +pos+ past whitespace matched by the anchored regexp +ws+ (nil when
+  # skipping is disabled). Returns the new position.
+  def __skip_ws(ws, input, pos)
+    return pos unless ws
+    (m = ws.match(input, pos)) ? pos + m[0].length : pos
   end
 
   # A parser that succeeds with +value+ without consuming any input (monadic
@@ -98,8 +132,13 @@ class PackratParser
     unless result.success?
       raise ParseError.new(result.message, result.pos)
     end
-    if result.pos < input.length
-      raise ParseError.new("unexpected trailing input", result.pos)
+    # The last terminal skips only *leading* whitespace, so trailing whitespace
+    # after the final token is left for parse to consume before requiring that
+    # all input was used.
+    ws = self.class.whitespace
+    end_pos = __skip_ws(ws && /\G(?:#{ws})/, input, result.pos)
+    if end_pos < input.length
+      raise ParseError.new("unexpected trailing input", end_pos)
     end
     result.value
   end

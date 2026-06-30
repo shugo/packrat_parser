@@ -166,4 +166,59 @@ assert_raise(PackratParser::ParseError, "trailing junk") { SimpleCalcParser.pars
 deep = "(" * 50 + "1" + ")" * 50
 assert_equal 1, SimpleCalcParser.parse(deep), "deeply nested parens parse"
 
+# ---------------------------------------------------------------------------
+# Whitespace skipping (Scala's RegexParsers mode): opt-in via skip_whitespace.
+# ---------------------------------------------------------------------------
+class WsCalcParser < PackratParser
+  skip_whitespace
+  start_symbol :additive
+
+  def additive
+    (for x in multitive, _ in term("+"), y in additive then x + y end) |
+      (for x in multitive, _ in term("-"), y in additive then x - y end) |
+      multitive
+  end
+
+  def multitive
+    (for x in primary, _ in term("*"), y in multitive then x * y end) |
+      (for x in primary, _ in term("/"), y in multitive then x / y end) |
+      primary
+  end
+
+  def primary
+    (for _l in term("("), x in additive, _r in term(")") then x end) | number
+  end
+
+  def number
+    for s in term(/\d+/) then s.to_i end
+  end
+end
+
+assert_equal 7, WsCalcParser.parse("1 + 2 * 3"), "whitespace between tokens"
+assert_equal 9, WsCalcParser.parse("( 1 + 2 ) * 3"), "whitespace inside parens"
+assert_equal 7, WsCalcParser.parse("  1+2*3  "), "leading and trailing whitespace"
+assert_equal 7, WsCalcParser.parse("1\t+\n2 * 3"), "tabs and newlines are whitespace"
+assert_equal 6, WsCalcParser.parse("1+2+3"), "no whitespace still parses"
+
+# Exact-match (default) mode rejects whitespace.
+assert_raise(PackratParser::ParseError, "default mode is exact") { SimpleCalcParser.parse("1 + 2") }
+
+# A custom whitespace pattern: skip spaces/tabs only, so a newline is trailing junk.
+class SpacesOnlyParser < PackratParser
+  skip_whitespace(/[ \t]+/)
+  start_symbol :pair
+  def pair
+    for a in term(/\d+/), b in term(/\d+/) then [a.to_i, b.to_i] end
+  end
+end
+assert_equal [1, 2], SpacesOnlyParser.parse("1 \t 2"), "custom pattern skips spaces/tabs"
+assert_raise(PackratParser::ParseError, "custom pattern excludes newline") { SpacesOnlyParser.parse("1\n2") }
+
+# Subclasses inherit the whitespace setting (rules are inherited too; only the
+# start symbol is re-declared, since start_symbol does not walk ancestors).
+class InheritedWsParser < WsCalcParser
+  start_symbol :additive
+end
+assert_equal 7, InheritedWsParser.parse("1 + 2 * 3"), "whitespace setting is inherited"
+
 report!
