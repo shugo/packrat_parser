@@ -95,20 +95,20 @@ class WrappedParser < PackratParser
   end
 end
 
-# `+` keeps both results as a pair (Scala's `~`).
+# `*` keeps both results as a pair (Scala's `~`).
 class PairParser < PackratParser
   start_symbol :pair
   def pair
-    term(/\d/).map { |s| s.to_i } + term(/\d/).map { |s| s.to_i }
+    term(/\d/).map { |s| s.to_i } * term(/\d/).map { |s| s.to_i }
   end
 end
 
-# `+` is left-associative and nests, like Scala's `~`.
+# `*` is left-associative and nests, like Scala's `~`.
 class TripleParser < PackratParser
   start_symbol :triple
   def triple
     d = term(/\d/).map { |s| s.to_i }
-    (d + d + d).map { |(a, b), c| [a, b, c] }
+    (d * d * d).map { |(a, b), c| [a, b, c] }
   end
 end
 
@@ -250,7 +250,7 @@ class TestPackratParser < Test::Unit::TestCase
   end
 
   # -------------------------------------------------------------------------
-  # Sequencing operators: `<<` keeps the left result, `>>` the right, `+` both.
+  # Sequencing operators: `<<` keeps the left result, `>>` the right, `*` both.
   # -------------------------------------------------------------------------
   def test_keep_left
     assert_equal 42, KeepLeftParser.parse("42;")

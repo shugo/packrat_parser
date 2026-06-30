@@ -71,10 +71,12 @@ public when it is defined.
 - `map { |v| new_value }` — transform the result.
 - `filter { |v| bool }` — succeed only when the predicate holds.
 - `a | b` — ordered choice: try `a`, and if it fails try `b`.
-- `a + b` — sequence, keep **both** results (Scala's `~`): run `a` then `b`,
-  yield the pair `[a, b]`. Left-associative and nesting, so `a + b + c` yields
-  `[[a, b], c]`; Ruby's block-parameter destructuring takes them apart the way
-  Scala's `case a ~ b ~ c` does: `(a + b + c).map { |(x, y), z| ... }`.
+- `a * b` — sequence, keep **both** results (Scala's `~`): run `a` then `b`,
+  yield the pair `[a, b]`. `*` reads as a product: the result is the product of
+  the two values, just as `|` (choice) is the algebraic sum. Left-associative and
+  nesting, so `a * b * c` yields `[[a, b], c]`; Ruby's block-parameter
+  destructuring takes them apart the way Scala's `case a ~ b ~ c` does:
+  `(a * b * c).map { |(x, y), z| ... }`.
 - `a << b` — sequence, keep the **left** result (Scala's `<~`): run `a` then
   `b`, yield `a`'s value and discard `b`'s.
 - `a >> b` — sequence, keep the **right** result (Scala's `~>`): run `a` then
@@ -82,7 +84,7 @@ public when it is defined.
 
 The arrow direction is a useful mnemonic: `<<`/`>>` keeps whichever side it
 points to. They are handy for discarding punctuation, e.g. `( expr )` is
-`term("(") >> expr << term(")")`. Ruby's precedence (`+` over `<<`/`>>` over
+`term("(") >> expr << term(")")`. Ruby's precedence (`*` over `<<`/`>>` over
 `|`) means sequencing binds tighter than ordered choice, as you'd want.
 
 `flat_map`, `map`, and `filter` are exactly what the `for ... then`

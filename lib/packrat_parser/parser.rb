@@ -88,13 +88,17 @@ class PackratParser
     end
 
     # Sequence, keeping *both* results (Scala's `~`). Run this parser, then
-    # +other+, and on success return the pair +[left, right]+. Like Scala's `~`
-    # this is left-associative and nests, so `p + q + r` yields `[[a, b], c]`;
-    # Ruby's block-parameter destructuring takes them apart the way Scala's
-    # `case a ~ b ~ c` does:
+    # +other+, and on success return the pair +[left, right]+. The result type is
+    # the product of the operands' types, so `*` (product) is the natural
+    # spelling -- and it dovetails with `|` for choice, mirroring how a regular
+    # language is a semiring with choice as the sum and sequence as the product.
     #
-    #   (p + q + r).map { |(a, b), c| ... }
-    def +(other)
+    # Like Scala's `~` this is left-associative and nests, so `p * q * r` yields
+    # `[[a, b], c]`; Ruby's block-parameter destructuring takes them apart the
+    # way Scala's `case a ~ b ~ c` does:
+    #
+    #   (p * q * r).map { |(a, b), c| ... }
+    def *(other)
       flat_map { |x| other.map { |y| [x, y] } }
     end
   end
