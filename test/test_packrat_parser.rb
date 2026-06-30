@@ -220,4 +220,50 @@ class InheritedWsParser < WsCalcParser
 end
 assert_equal 7, InheritedWsParser.parse("1 + 2 * 3"), "whitespace setting is inherited"
 
+# ---------------------------------------------------------------------------
+# Multibyte (UTF-8) input: positions are tracked by byte offset, so matching
+# stays correct across multibyte characters (and stays O(match length)).
+# ---------------------------------------------------------------------------
+class GreetingParser < PackratParser
+  start_symbol :greet
+  # multibyte literal followed by a multibyte regexp capture (katakana name,
+  # so it stops before the hiragana honorific "さん")
+  def greet
+    for _ in term("こんにちは、"), name in term(/\p{Katakana}+/), _ in term("さん") then name end
+  end
+end
+assert_equal "シュゴ", GreetingParser.parse("こんにちは、シュゴさん"), "multibyte literals and regexp"
+
+# A regexp terminal that spans multibyte characters reports the right value and
+# advances by the right number of bytes (trailing ASCII must still line up).
+class KanjiNumParser < PackratParser
+  start_symbol :pair
+  def pair
+    for word in term(/\p{Han}+/), n in term(/\d+/) then [word, n.to_i] end
+  end
+end
+assert_equal ["三二一", 123], KanjiNumParser.parse("三二一123"), "byte advance across kanji"
+
+# Whitespace skipping works with multibyte tokens, and with a multibyte
+# whitespace character (full-width space U+3000, 3 bytes) the offset still
+# advances by the right number of bytes.
+class WsKanjiParser < PackratParser
+  skip_whitespace(/[\s　]+/)
+  start_symbol :pair
+  def pair
+    for a in term(/\p{Han}+/), b in term(/\p{Han}+/) then [a, b] end
+  end
+end
+assert_equal ["日本", "語"], WsKanjiParser.parse(" 日本 　語 "), "multibyte tokens and full-width-space whitespace"
+
+# Error positions are reported as character offsets, not byte offsets, even when
+# preceded by multibyte characters.
+begin
+  KanjiNumParser.parse("三二一123x")
+  assert(false, "expected ParseError")
+rescue PackratParser::ParseError => e
+  # "三二一123" is 6 characters; the stray "x" is at character offset 6.
+  assert_equal 6, e.pos, "error pos is a character offset, not a byte offset"
+end
+
 report!

@@ -79,6 +79,11 @@ class PackratParser
   # position; a Regexp is matched anchored at the current position. The matched
   # substring is the parser's value.
   #
+  # Positions are *byte* offsets, not character offsets: indexing a UTF-8 string
+  # by character is O(n), so matching by byte (+byteslice+ for literals,
+  # +byteindex+ with a `\G` anchor for regexps) keeps each step O(match length)
+  # regardless of how far into the input we are.
+  #
   # When the class enables +skip_whitespace+, leading whitespace is consumed
   # before the match is attempted, mirroring Scala's RegexParsers.
   def term(pattern)
@@ -86,10 +91,11 @@ class PackratParser
     ws = /\G(?:#{ws})/ if ws
     case pattern
     when String
+      bytes = pattern.bytesize
       Parser.new do |input, pos|
         pos = __skip_ws(ws, input, pos)
-        if input[pos, pattern.length] == pattern
-          Success.new(pattern, pos + pattern.length)
+        if input.byteslice(pos, bytes) == pattern
+          Success.new(pattern, pos + bytes)
         else
           Failure.new(pos, "expected #{pattern.inspect}")
         end
@@ -98,8 +104,9 @@ class PackratParser
       anchored = /\G(?:#{pattern})/
       Parser.new do |input, pos|
         pos = __skip_ws(ws, input, pos)
-        if (m = anchored.match(input, pos))
-          Success.new(m[0], pos + m[0].length)
+        if input.byteindex(anchored, pos)
+          s = Regexp.last_match[0]
+          Success.new(s, pos + s.bytesize)
         else
           Failure.new(pos, "expected #{pattern.inspect}")
         end
@@ -109,11 +116,11 @@ class PackratParser
     end
   end
 
-  # Advance +pos+ past whitespace matched by the anchored regexp +ws+ (nil when
-  # skipping is disabled). Returns the new position.
+  # Advance the byte offset +pos+ past whitespace matched by the anchored regexp
+  # +ws+ (nil when skipping is disabled). Returns the new byte offset.
   def __skip_ws(ws, input, pos)
     return pos unless ws
-    (m = ws.match(input, pos)) ? pos + m[0].length : pos
+    input.byteindex(ws, pos) ? pos + Regexp.last_match[0].bytesize : pos
   end
 
   # A parser that succeeds with +value+ without consuming any input (monadic
@@ -124,6 +131,10 @@ class PackratParser
 
   # Parse +input+ starting from the configured start symbol. Returns the parsed
   # value on success; raises ParseError on failure or on leftover input.
+  #
+  # Parsing tracks byte offsets internally (see +term+), but the position
+  # reported on a ParseError is a character offset, so error messages count the
+  # way a human reads the source.
   def parse(input)
     @__memo = {}
     name = self.class.start_symbol
@@ -131,16 +142,22 @@ class PackratParser
 
     result = send(name).call(input, 0)
     unless result.success?
-      raise ParseError.new(result.message, result.pos)
+      raise ParseError.new(result.message, __char_offset(input, result.pos))
     end
     # The last terminal skips only *leading* whitespace, so trailing whitespace
     # after the final token is left for parse to consume before requiring that
     # all input was used.
     ws = self.class.whitespace
     end_pos = __skip_ws(ws && /\G(?:#{ws})/, input, result.pos)
-    if end_pos < input.length
-      raise ParseError.new("unexpected trailing input", end_pos)
+    if end_pos < input.bytesize
+      raise ParseError.new("unexpected trailing input", __char_offset(input, end_pos))
     end
     result.value
+  end
+
+  # Convert an internal byte offset to a character offset for user-facing error
+  # reporting. O(byte_pos), but only ever runs on the error path.
+  def __char_offset(input, byte_pos)
+    input.byteslice(0, byte_pos).length
   end
 end
