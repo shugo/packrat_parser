@@ -2,4 +2,4 @@
 # Run the test suite (or any script passed as an argument) with the legacy
 # parser, which is required for the `for ... then` comprehension. rbenv's local
 # `dev` version already points `ruby` at the fork.
-exec ruby --parser=parse.y -Ilib -Itest "${@:-test/test_packrat_parser.rb}"
+exec ruby --parser=parse.y -Ilib "${@:-test/test_packrat_parser.rb}"
