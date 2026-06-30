@@ -11,8 +11,6 @@ require "packrat_parser"
 # consequence is that "-" and "/" associate to the right, e.g. 8-3-2 parses as
 # 8-(3-2) == 7. That trade-off comes from the monadic-core / no-`rep` API.
 class SimpleCalcParser < PackratParser
-  start_symbol :additive
-
   def additive
     for x in multitive << term("+"), y in additive then x + y end |
       for x in multitive << term("-"), y in additive then x - y end |

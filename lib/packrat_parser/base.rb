@@ -6,7 +6,6 @@ class PackratParser
   # graph is built.
   #
   #   class SimpleCalcParser < PackratParser
-  #     start_symbol :additive
   #     def additive
   #       (for x in multitive, _ in term("+"), y in additive then x + y end) | multitive
   #     end
@@ -16,6 +15,7 @@ class PackratParser
   #   SimpleCalcParser.parse("1+2*3")  # => 7
 
   # Set (or read) the rule the parser starts from.
+  # If omitted, the first defined method is used as the start symbol.
   def self.start_symbol(name = nil)
     if name
       @start_symbol = name
@@ -59,6 +59,7 @@ class PackratParser
     return if @__defining_rule
 
     @__defining_rule = true
+    @start_symbol ||= name
     begin
       body = instance_method(name)
       define_method(name) do

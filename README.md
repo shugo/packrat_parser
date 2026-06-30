@@ -9,8 +9,6 @@ grammar reads like a Scala for-comprehension.
 require "packrat_parser"
 
 class SimpleCalcParser < PackratParser
-  start_symbol :additive
-
   def additive
     (for x in multitive, _ in term("+"), y in additive then x + y end) |
       (for x in multitive, _ in term("-"), y in additive then x - y end) |
@@ -102,7 +100,6 @@ whitespace before requiring full input consumption:
 class CalcParser < PackratParser
   skip_whitespace            # default pattern: /\s+/
   # skip_whitespace(/[ \t]+/)  # or a custom pattern (e.g. spaces/tabs only)
-  start_symbol :additive
   # ... rules using term(...) ...
 end
 
@@ -114,6 +111,7 @@ The setting is inherited by subclasses, so a base parser can enable it once.
 ### Entry point
 
 - `start_symbol :name` (class level) — choose the rule to start from.
+  If omitted, the first defined method is used as the start symbol.
 - `Klass.parse(input)` / `Klass.new.parse(input)` — parse, returning the value.
   Raises `PackratParser::ParseError` on failure or leftover input.
 

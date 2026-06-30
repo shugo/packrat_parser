@@ -11,7 +11,6 @@ include TinyTest
 # Terminals: literal strings and regexps, full vs partial consumption.
 # ---------------------------------------------------------------------------
 class LiteralParser < PackratParser
-  start_symbol :greeting
   def greeting
     term("hi")
   end
