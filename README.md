@@ -157,3 +157,12 @@ ruby --parser=parse.y -Ilib test/test_packrat_parser.rb
 
 The `rake test` task runs the suite under `--parser=parse.y` for you (the test
 grammars need the fork's legacy parser).
+
+## Benchmark
+
+`benchmark/` compares this library against [racc](https://github.com/ruby/racc)
+(LALR) and [parslet](https://kschiess.github.io/parslet/) (PEG combinators) on
+the same calculator grammar. Run it with `rake bench` (needs `parslet`). Roughly,
+all three are linear on this grammar, with **racc ≫ packrat_parser > parslet** on
+constant factors (packrat_parser ~5× racc, parslet ~4× packrat_parser). See
+[benchmark/README.md](benchmark/README.md) for numbers and analysis.

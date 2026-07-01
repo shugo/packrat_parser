@@ -10,4 +10,12 @@ Rake::TestTask.new(:test) do |t|
   t.warning = false
 end
 
+desc "Run the packrat_parser vs racc vs parslet benchmark"
+task :bench do
+  # Regenerate the racc parser, then run under the fork's legacy parser (the
+  # packrat_parser grammar uses `for ... then`). Needs the parslet gem.
+  sh "racc -o benchmark/calc_racc.rb benchmark/calc.y"
+  sh "ruby --parser=parse.y benchmark/bench.rb"
+end
+
 task default: :test
