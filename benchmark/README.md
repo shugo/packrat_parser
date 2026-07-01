@@ -3,9 +3,9 @@
 Three implementations of the **same four-function integer calculator**
 (lexing + parsing + evaluation to an `Integer`), timed on the same VM:
 
-- `../examples/simple_calc.rb` — packrat_parser (this gem)
-- `calc.y` / `calc_racc.rb` — [racc](https://github.com/ruby/racc) LALR parser
-- `calc_parslet.rb` — [parslet](https://kschiess.github.io/parslet/) PEG combinators
+- [../examples/simple_calc.rb](../examples/simple_calc.rb) — packrat_parser (this gem)
+- [calc.y](calc.y) / [calc_racc.rb](calc_racc.rb) — [racc](https://github.com/ruby/racc) LALR parser
+- [calc_parslet.rb](calc_parslet.rb) — [parslet](https://kschiess.github.io/parslet/) PEG combinators
 
 ## Running
 
