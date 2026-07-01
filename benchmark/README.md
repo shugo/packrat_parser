@@ -36,11 +36,11 @@ Fork dev build (Ruby 4.1.0dev), 2000 iterations, lexing + parse + eval:
 
 | input       | racc   | packrat_parser | parslet |
 |-------------|--------|----------------|---------|
-| 10 terms    | 0.06s  | 0.33s          | 1.32s   |
-| 50 terms    | 0.28s  | 2.23s          | 6.23s   |
-| 200 terms   | 1.18s  | 6.37s          | 26.3s   |
+| 10 terms    | 0.06s  | 0.19s          | 1.32s   |
+| 50 terms    | 0.27s  | 0.77s          | 6.24s   |
+| 200 terms   | 1.13s  | 3.22s          | 25.6s   |
 
-Relative (200 terms, racc = 1.0): **racc 1.0× · packrat_parser ~5.4× · parslet ~22×**.
+Relative (200 terms, racc = 1.0): **racc 1.0× · packrat_parser ~2.9× · parslet ~23×**.
 
 Scaling from 10→200 terms (20× the input) grows the time ~20× for all three:
 each is **linear** on this grammar. packrat_parser stays linear thanks to
@@ -51,7 +51,10 @@ grammars can degrade. The gap is a constant factor:
   lexer, with minimal per-parse allocation.
 - **packrat_parser** is a pure-Ruby runtime DSL: it allocates a `Success`/
   `Failure` per terminal and a memo hash per parse, though the combinator graph
-  itself is built once and cached.
+  itself is built once and cached. (Allocation was roughly halved by sharing
+  each terminal's constant failure message, using a two-level memo table instead
+  of an `[name, pos]` key array, and building `<<`/`>>`/`*` directly rather than
+  via `flat_map`/`map` — see git history.)
 - **parslet** is slowest — it builds an intermediate parse tree (nested hashes)
   and then walks it with a `Transform`, a two-pass, allocation-heavy design.
 

@@ -76,7 +76,18 @@ class PackratParser
     #
     #   number << term(";")   # parse a number followed by ";", yield the number
     def <<(other)
-      flat_map { |x| other.map { |_| x } }
+      # Equivalent to flat_map { |x| other.map { |_| x } }, but written directly
+      # so the combinator graph is built once (at bind time) instead of
+      # allocating a fresh `map` parser on every successful match.
+      Parser.new do |input, pos|
+        a = call(input, pos)
+        if a.success?
+          b = other.call(input, a.pos)
+          b.success? ? Success.new(a.value, b.pos) : b
+        else
+          a
+        end
+      end
     end
 
     # Sequence, keeping the *right* result (Scala's `~>`). Run this parser, then
@@ -84,7 +95,12 @@ class PackratParser
     #
     #   term("(") >> additive   # skip "(", yield whatever additive produces
     def >>(other)
-      flat_map { |_| other }
+      # Equivalent to flat_map { |_| other }, written directly to avoid the
+      # per-call block dispatch.
+      Parser.new do |input, pos|
+        a = call(input, pos)
+        a.success? ? other.call(input, a.pos) : a
+      end
     end
 
     # Sequence, keeping *both* results (Scala's `~`). Run this parser, then
@@ -99,7 +115,18 @@ class PackratParser
     #
     #   (p * q * r).map { |(a, b), c| ... }
     def *(other)
-      flat_map { |x| other.map { |y| [x, y] } }
+      # Equivalent to flat_map { |x| other.map { |y| [x, y] } }, written directly
+      # so only the result pair (and its Success) is allocated per match, not a
+      # fresh intermediate `map` parser.
+      Parser.new do |input, pos|
+        a = call(input, pos)
+        if a.success?
+          b = other.call(input, a.pos)
+          b.success? ? Success.new([a.value, b.value], b.pos) : b
+        else
+          a
+        end
+      end
     end
 
     # Zero or more repetitions (Scala's `rep` / `p.*`). Always succeeds, yielding
@@ -163,11 +190,13 @@ class PackratParser
     end
 
     def call(input, pos)
-      memo = @owner.__memo
-      key = [@name, pos]
-      return memo[key] if memo.key?(key)
+      # Two-level memo table (rule -> pos -> result). Keying on a single [name,
+      # pos] Array would allocate one Array per rule invocation and hash it;
+      # nesting keeps the per-call key a bare Integer.
+      memo = (@owner.__memo[@name] ||= {})
+      return memo[pos] if memo.key?(pos)
       combinator = (@owner.__built[@name] ||= @body.bind(@owner).call)
-      memo[key] = combinator.call(input, pos)
+      memo[pos] = combinator.call(input, pos)
     end
 
     # Parse +input+ starting from this rule, e.g. +parser.number.parse("123")+.

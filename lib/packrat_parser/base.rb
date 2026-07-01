@@ -77,7 +77,7 @@ class PackratParser
     end
   end
 
-  # Per-input packrat memo table, keyed by [rule_name, pos].
+  # Per-input packrat memo table: a two-level hash, rule_name => (pos => result).
   def __memo
     @__memo ||= {}
   end
@@ -106,23 +106,29 @@ class PackratParser
     case pattern
     when String
       bytes = pattern.bytesize
+      # The failure message is constant for this terminal, and failures are
+      # common (ordered choice discards them) while the message is only read if
+      # the whole parse fails. Build it once and share the frozen string rather
+      # than interpolating on every failed match.
+      msg = "expected #{pattern.inspect}".freeze
       Parser.new do |input, pos|
         pos = __skip_ws(ws, input, pos)
         if input.byteslice(pos, bytes) == pattern
           Success.new(pattern, pos + bytes)
         else
-          Failure.new(pos, "expected #{pattern.inspect}")
+          Failure.new(pos, msg)
         end
       end
     when Regexp
       anchored = /\G(?:#{pattern})/
+      msg = "expected #{pattern.inspect}".freeze
       Parser.new do |input, pos|
         pos = __skip_ws(ws, input, pos)
         if input.byteindex(anchored, pos)
           s = Regexp.last_match[0]
           Success.new(s, pos + s.bytesize)
         else
-          Failure.new(pos, "expected #{pattern.inspect}")
+          Failure.new(pos, msg)
         end
       end
     else
