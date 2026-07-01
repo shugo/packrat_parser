@@ -112,6 +112,36 @@ class TripleParser < PackratParser
   end
 end
 
+# Repetition and optional (Scala's rep / rep1 / opt).
+class RepParser < PackratParser
+  start_symbol :digits
+  def digits
+    for ds in term(/\d/).map { |s| s.to_i }.rep then ds end
+  end
+end
+
+class Rep1Parser < PackratParser
+  start_symbol :digits
+  def digits
+    for ds in term(/\d/).map { |s| s.to_i }.rep1 then ds end
+  end
+end
+
+class OptSignParser < PackratParser
+  start_symbol :signed
+  def signed
+    for s in term("-").opt, n in term(/\d+/).map { |x| x.to_i } then s ? -n : n end
+  end
+end
+
+# rep must not spin forever on a parser that can match without consuming input.
+class NullableRepParser < PackratParser
+  start_symbol :run
+  def run
+    for r in term(/\d*/).rep then r end
+  end
+end
+
 # Whitespace skipping (Scala's RegexParsers mode): opt-in via skip_whitespace.
 class WsCalcParser < PackratParser
   skip_whitespace
@@ -271,6 +301,29 @@ class TestPackratParser < Test::Unit::TestCase
 
   def test_pair_nests_left_associatively
     assert_equal [1, 2, 3], TripleParser.parse("123")
+  end
+
+  # -------------------------------------------------------------------------
+  # Repetition and optional: rep / rep1 / opt.
+  # -------------------------------------------------------------------------
+  def test_rep
+    assert_equal [1, 2, 3], RepParser.parse("123")
+    assert_equal [], RepParser.parse(""), "rep matches zero occurrences"
+  end
+
+  def test_rep1
+    assert_equal [4, 2], Rep1Parser.parse("42")
+    assert_equal [5], Rep1Parser.parse("5")
+    assert_raise(PackratParser::ParseError) { Rep1Parser.parse("") }
+  end
+
+  def test_opt
+    assert_equal(-5, OptSignParser.parse("-5"), "opt present")
+    assert_equal 5, OptSignParser.parse("5"), "opt absent yields nil"
+  end
+
+  def test_rep_does_not_loop_on_nullable
+    assert_equal ["12"], NullableRepParser.parse("12")
   end
 
   # -------------------------------------------------------------------------

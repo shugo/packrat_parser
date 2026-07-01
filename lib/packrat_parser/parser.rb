@@ -101,6 +101,39 @@ class PackratParser
     def *(other)
       flat_map { |x| other.map { |y| [x, y] } }
     end
+
+    # Zero or more repetitions (Scala's `rep` / `p.*`). Always succeeds, yielding
+    # an array of the collected values (empty when there are no matches). A match
+    # that consumes no input stops the loop, so a nullable parser can't spin
+    # forever.
+    def rep
+      Parser.new do |input, pos|
+        values = []
+        cur = pos
+        loop do
+          result = call(input, cur)
+          break if !result.success? || result.pos == cur
+          values << result.value
+          cur = result.pos
+        end
+        Success.new(values, cur)
+      end
+    end
+
+    # One or more repetitions (Scala's `rep1` / `p.+`). Fails if the first match
+    # fails; otherwise yields a non-empty array of values.
+    def rep1
+      flat_map { |first| rep.map { |rest| [first, *rest] } }
+    end
+
+    # Optional (Scala's `opt` / `p.?`). Yields the parsed value, or nil (consuming
+    # nothing) when this parser does not match.
+    def opt
+      Parser.new do |input, pos|
+        result = call(input, pos)
+        result.success? ? result : Success.new(nil, pos)
+      end
+    end
   end
 
   # A lazy, memoizing reference to a named grammar rule.

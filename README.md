@@ -81,6 +81,12 @@ public when it is defined.
   `b`, yield `a`'s value and discard `b`'s.
 - `a >> b` — sequence, keep the **right** result (Scala's `~>`): run `a` then
   `b`, yield `b`'s value and discard `a`'s.
+- `p.rep` — zero or more (Scala's `rep`): yields an array of results (empty when
+  there are no matches). Always succeeds.
+- `p.rep1` — one or more (Scala's `rep1`): like `rep` but fails unless `p`
+  matches at least once; yields a non-empty array.
+- `p.opt` — optional (Scala's `opt`): yields `p`'s value, or `nil` (consuming
+  nothing) when `p` does not match.
 
 The arrow direction is a useful mnemonic: `<<`/`>>` keeps whichever side it
 points to. They are handy for discarding punctuation, e.g. `( expr )` is
